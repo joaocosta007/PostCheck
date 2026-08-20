@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: postcheck
+    runtime: docker
+    plan: free
+    autoDeployTrigger: commit
+    healthCheckPath: /health
+    envVars:
+      - key: EMAIL_PROVIDER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: onboarding@resend.dev
+      - key: RESEND_TEST_RECIPIENT
+        sync: false

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PostCheck | Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root { --blue:#2764e7; --blue-dark:#1550d0; --ink:#111b30; --muted:#667896; --line:#dce4ef; --bg:#f6f8fb; --green:#009b67; --orange:#db6a00; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    .sidebar { position:fixed; inset:0 auto 0 0; width:224px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; z-index:20; }
+    .brand { height:60px; display:flex; align-items:center; gap:10px; padding:0 20px; border-bottom:1px solid #edf1f6; font-weight:750; font-size:15px; }
+    .brand-icon { width:34px; height:34px; display:grid; place-items:center; color:#fff; background:var(--blue); border-radius:9px; box-shadow:0 2px 4px #1e52bb4d; }
+    .condo { margin:14px 20px 18px; padding:10px 12px; background:#f7f9fc; border:1px solid var(--line); border-radius:8px; }
+    .eyebrow { color:#8a9ab5; font-size:10px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+    .condo strong { display:block; margin-top:2px; font-size:12px; }
+    .nav { display:grid; gap:4px; padding:0 11px; }
+    .nav-button { display:flex; align-items:center; gap:12px; width:100%; padding:11px 13px; border:0; color:var(--muted); background:transparent; border-radius:8px; font-weight:650; text-align:left; }
+    .nav-button:hover { background:#f2f6fc; color:var(--ink); }
+    .nav-button.active { color:#fff; background:var(--blue); box-shadow:0 2px 5px #2764e73d; }
+    .nav-button i { font-size:16px; }
+    .operator { margin-top:auto; padding:16px; border-top:1px solid #edf1f6; display:flex; align-items:center; gap:10px; }
+    .avatar { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:#5879f5; color:#fff; font-size:11px; font-weight:800; flex:none; }
+    .operator strong { display:block; font-size:12px; }
+    .operator small { color:#7d8ba3; font-size:10px; }
+    .app { margin-left:224px; min-height:100vh; }
+    .topbar { height:60px; padding:0 32px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+    .topbar h1 { margin:0; font-size:15px; }
+    .topbar time { color:#8191ad; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .content { max-width:1024px; margin:0 auto; padding:32px; }
+    .alert { display:none; padding:12px 14px; margin-bottom:18px; border:1px solid; border-radius:9px; }
+    .alert.show { display:block; }
+    .alert-success { color:#087552; background:#ecfdf5; border-color:#a7f3d0; }
+    .alert-warning { color:#98530b; background:#fffbeb; border-color:#fde68a; }
+    .alert-danger { color:#b42318; background:#fef3f2; border-color:#fecdca; }
+    .alert-info { color:#174ea6; background:#eff6ff; border-color:#bfdbfe; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+    .metric { min-height:114px; padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 2px 3px #16233a12; }
+    .metric-label { color:#647693; font-size:12px; font-weight:700; text-transform:uppercase; }
+    .metric-value { margin:6px 0 1px; font-size:32px; line-height:1; font-weight:780; }
+    .metric small { color:#8596b3; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .metric.orange .metric-value { color:var(--orange); } .metric.blue .metric-value { color:#1455e4; } .metric.green .metric-value { color:var(--green); }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:13px; box-shadow:0 2px 3px #16233a12; overflow:hidden; margin-bottom:28px; }
+    .panel-head { min-height:78px; padding:18px 24px; display:flex; align-items:center; gap:13px; border-bottom:1px solid #e9eef5; }
+    .step { width:25px; height:25px; display:grid; place-items:center; flex:none; border-radius:50%; background:var(--blue); color:#fff; font-size:12px; font-weight:800; }
+    .step.muted { color:#607493; background:#eff3f8; }
+    .panel-title { font-weight:750; }
+    .panel-subtitle { color:#667896; font-size:12px; margin-top:1px; }
+    .panel-body { padding:24px; }
+    .drop-zone { min-height:168px; display:grid; place-items:center; text-align:center; border:2px dashed #dbe5f1; border-radius:11px; background:#f9fbfd; color:#43516a; transition:.2s; }
+    .drop-zone.dragging { border-color:var(--blue); background:#eff5ff; }
+    .drop-icon { color:#c7d4e6; font-size:31px; }
+    .drop-title { margin-top:7px; font-weight:700; }
+    .drop-hint { color:#8b9bb6; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .capture-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px; }
+    .btn { min-height:43px; padding:9px 16px; border:1px solid #cbd7e6; border-radius:8px; background:#fff; color:#34445e; font-weight:700; }
+    .btn:hover { background:#f6f9fd; }
+    .btn-primary { color:#fff; background:var(--blue); border-color:var(--blue); box-shadow:0 2px 4px #1b51c73d; }
+    .btn-primary:hover { background:var(--blue-dark); }
+    .btn-success { color:#fff; background:#09966a; border-color:#09966a; }
+    .btn:disabled { cursor:not-allowed; opacity:.55; }
+    .processing { display:none; margin-top:14px; color:#5e7191; text-align:center; }
+    .processing.show { display:block; }
+    .spinner { width:14px; height:14px; display:inline-block; margin-right:6px; border:2px solid #bed0ef; border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .hidden { display:none !important; }
+    .camera-wrap { padding:24px; text-align:center; }
+    .camera-video { width:100%; max-height:58vh; object-fit:cover; background:#0c1422; border-radius:10px; }
+    .camera-actions { display:flex; justify-content:center; gap:10px; margin-top:14px; }
+    .validation-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .preview { width:100%; height:215px; object-fit:contain; background:#f1f4f8; border-radius:9px; }
+    .field { margin-top:16px; }
+    .field label { display:block; margin-bottom:6px; color:#60708b; font-size:11px; font-weight:800; text-transform:uppercase; }
+    .field-box,.readonly { width:100%; min-height:43px; padding:11px 12px; border:1px solid #d7e0eb; border-radius:8px; background:#f9fafc; color:#263650; }
+    .ocr { min-height:72px; white-space:pre-wrap; }
+    .validation-actions { display:flex; justify-content:flex-end; margin-top:18px; }
+    .control-head { padding:16px 24px; display:flex; align-items:center; gap:12px; }
+    .count { min-width:22px; padding:3px 7px; border-radius:12px; background:#f0f3f8; color:#71819b; font-size:10px; font-weight:800; text-align:center; }
+    .control-tools { margin-left:auto; display:flex; gap:8px; }
+    .search { width:220px; height:36px; display:flex; align-items:center; gap:7px; padding:0 11px; border:1px solid #d7e0eb; border-radius:8px; color:#8da0bd; }
+    .search input { width:100%; border:0; outline:0; color:#263650; background:transparent; font-size:12px; }
+    .icon-btn { width:37px; height:36px; display:grid; place-items:center; border:1px solid #d7e0eb; border-radius:8px; color:#647896; background:#fff; }
+    .table-scroll { overflow:auto; }
+    table { width:100%; border-collapse:collapse; min-width:880px; }
+    th { padding:14px 24px; background:#f0f4f9; color:#62728d; font-size:10px; letter-spacing:.04em; text-align:left; text-transform:uppercase; }
+    td { padding:15px 24px; border-bottom:1px solid #edf1f6; color:#34435c; font-size:12px; }
+    tbody tr:hover { background:#fafcff; }
+    .code { padding:4px 7px; color:#7386a4; background:#f0f4f8; border-radius:4px; font:11px ui-monospace, SFMono-Regular, Menlo, monospace; white-space:nowrap; }
+    .resident { display:flex; align-items:center; gap:10px; color:#17243a; font-size:13px; font-weight:650; white-space:nowrap; }
+    .resident-avatar { width:28px; height:28px; display:grid; place-items:center; border-radius:50%; background:#edf2f8; color:#6b7e9c; font-size:10px; }
+    .mono { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; white-space:nowrap; }
+    .status { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border:1px solid; border-radius:14px; font:700 10px ui-monospace, SFMono-Regular, Menlo, monospace; white-space:nowrap; }
+    .status::before { content:""; width:5px; height:5px; border-radius:50%; background:currentColor; }
+    .status.waiting { color:#c56800; background:#fffaf0; border-color:#ffd882; }
+    .status.delivered { color:#008f62; background:#effdf7; border-color:#9eeecf; }
+    .low-btn { min-height:31px; padding:5px 10px; color:#fff; background:#07946a; border-color:#07946a; font-size:11px; }
+    .small-btn { min-height:31px; padding:5px 9px; font-size:11px; }
+    .danger-btn { color:#b42318; border-color:#f3b8b2; }
+    .danger-btn:hover { background:#fff1f0; }
+    .resident-tools { display:flex; gap:8px; margin-left:auto; }
+    .resident-search { width:250px; }
+    select.readonly { appearance:auto; }
+    dialog { width:min(480px,calc(100% - 28px)); padding:0; border:0; border-radius:13px; box-shadow:0 24px 70px #17203340; }
+    dialog::backdrop { background:#17203380; backdrop-filter:blur(2px); }
+    .dialog-head { display:flex; justify-content:space-between; align-items:center; padding:18px 22px; border-bottom:1px solid #e7edf5; }
+    .dialog-head h2 { margin:0; font-size:16px; }
+    .dialog-close { border:0; background:transparent; color:#71819a; font-size:20px; }
+    .dialog-body { padding:22px; }
+    .form-group { margin-bottom:15px; }
+    .form-group label { display:block; margin-bottom:6px; color:#5f708c; font-size:11px; font-weight:800; text-transform:uppercase; }
+    .form-control { width:100%; height:42px; padding:9px 11px; border:1px solid #d5dfeb; border-radius:8px; outline:0; }
+    .form-control:focus { border-color:var(--blue); box-shadow:0 0 0 3px #2764e71a; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:6px; }
+    .empty { padding:32px; color:#8291aa; text-align:center; }
+    @media (max-width:900px) { .metrics { grid-template-columns:1fr 1fr; } .content { padding:24px; } }
+    @media (max-width:680px) {
+      .sidebar { position:static; width:auto; height:auto; border-right:0; }
+      .brand { border-bottom:0; } .condo,.operator { display:none; }
+      .nav { display:flex; overflow-x:auto; padding:0 12px 10px; } .nav-button { width:auto; white-space:nowrap; }
+      .app { margin-left:0; } .topbar { height:58px; padding:0 18px; } .content { padding:18px 12px; }
+      .metrics { grid-template-columns:1fr 1fr; gap:10px; } .metric { min-height:100px; padding:15px; } .metric-value { font-size:27px; }
+      .panel-head,.panel-body { padding:18px; } .capture-actions,.validation-grid { grid-template-columns:1fr; }
+      .control-head { align-items:flex-start; flex-wrap:wrap; padding:15px 18px; } .control-tools,.resident-tools { width:100%; margin-left:0; } .search,.resident-search { width:auto; flex:1; }
+      .camera-actions { flex-direction:column; } .validation-actions .btn { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon"><i class="bi bi-box-seam"></i></span>PostCheck</div>
+    <div class="condo"><span class="eyebrow">Condomínio</span><strong>Bella Vista</strong></div>
+    <nav class="nav">
+      <button class="nav-button active" data-target="dashboard"><i class="bi bi-grid"></i>Dashboard</button>
+      <button class="nav-button" data-target="capture"><i class="bi bi-bounding-box-circles"></i>Captura</button>
+      <button class="nav-button" data-target="residents"><i class="bi bi-people"></i>Moradores</button>
+      <button class="nav-button" data-filter="Aguardando Retirada"><i class="bi bi-bell"></i>Notificações</button>
+      <button class="nav-button" data-settings><i class="bi bi-gear"></i>Configurações</button>
+    </nav>
+    <div class="operator"><span class="avatar">PB</span><div><strong>Porteiro Barros</strong><small>Turno 06h–14h</small></div></div>
+  </aside>
+
+  <div class="app">
+    <header class="topbar"><div><h1>Dashboard</h1><time id="today"></time></div></header>
+    <main class="content" id="dashboard">
+      <div id="alerta" class="alert" role="alert"></div>
+
+      <section class="metrics" aria-label="Resumo de encomendas">
+        <article class="metric"><div class="metric-label">Total</div><div id="metric-total" class="metric-value">0</div><small>encomendas</small></article>
+        <article class="metric orange"><div class="metric-label">Aguardando</div><div id="metric-waiting" class="metric-value">0</div><small>na portaria</small></article>
+        <article class="metric blue"><div class="metric-label">Notificações</div><div id="metric-notifications" class="metric-value">0</div><small>pendentes</small></article>
+        <article class="metric green"><div class="metric-label">Entregues</div><div id="metric-delivered" class="metric-value">0</div><small>esta semana</small></article>
+      </section>
+
+      <section class="panel" id="capture">
+        <div class="panel-head"><span class="step">1</span><div><div class="panel-title">Captura da Etiqueta</div><div class="panel-subtitle">Escaneie ou importe a etiqueta para registrar a encomenda</div></div></div>
+        <div class="panel-body">
+          <div id="drop-zone" class="drop-zone">
+            <div><i class="bi bi-cloud-arrow-up drop-icon"></i><div class="drop-title">Arraste a etiqueta aqui</div><div class="drop-hint">JPG · PNG · WEBP · máx. 10 MB</div></div>
+          </div>
+          <div class="capture-actions">
+            <button id="open-camera-btn" class="btn btn-primary" type="button"><i class="bi bi-camera me"></i>&nbsp; Usar Câmera</button>
+            <button id="choose-image-btn" class="btn" type="button"><i class="bi bi-image"></i>&nbsp; Importar da Galeria</button>
+            <input class="hidden" type="file" id="camera-input" accept="image/*" capture="environment">
+            <input class="hidden" type="file" id="gallery-input" accept="image/*">
+          </div>
+          <div id="processing" class="processing"><span class="spinner"></span>Processando etiqueta com OCR...</div>
+        </div>
+      </section>
+
+      <section id="camera-panel" class="panel hidden">
+        <div class="panel-head"><span class="step">●</span><div><div class="panel-title">Câmera</div><div class="panel-subtitle">Mantenha a etiqueta nítida e bem iluminada</div></div></div>
+        <div class="camera-wrap"><video id="camera-video" class="camera-video" autoplay playsinline muted></video><canvas id="camera-canvas" class="hidden"></canvas><div class="camera-actions"><button id="capture-btn" class="btn btn-success">Capturar e Processar</button><button id="close-camera-btn" class="btn">Cancelar</button></div></div>
+      </section>
+
+      <section id="validation-panel" class="panel hidden">
+        <div class="panel-head"><span class="step">✓</span><div><div class="panel-title">Validação da Leitura</div><div class="panel-subtitle">Confira os dados antes de registrar</div></div></div>
+        <div class="panel-body">
+          <div class="validation-grid"><div><div class="panel-subtitle">Imagem original</div><img id="original-preview" class="preview" alt="Etiqueta original"></div><div><div class="panel-subtitle">Imagem processada</div><img id="processed-preview" class="preview" alt="Etiqueta binarizada"></div></div>
+          <div class="field"><label>Texto extraído</label><div id="ocr-text" class="field-box ocr"></div></div>
+          <div class="validation-grid"><div class="field"><label>Morador identificado</label><select id="resident-select" class="readonly"><option value="">Selecione o morador...</option></select><div id="resident-match-hint" class="panel-subtitle" style="margin-top:6px"></div></div><div class="field"><label>Transportadora</label><input id="carrier" class="readonly"></div></div>
+          <div class="field"><label>Código gerado</label><input id="generated-code" class="readonly" readonly></div>
+          <div class="validation-actions"><button id="confirm-btn" class="btn btn-success" disabled>Confirmar Registro e Notificar</button></div>
+        </div>
+      </section>
+
+      <section class="panel" id="packages">
+        <div class="control-head"><span class="step muted">2</span><span class="panel-title">Controle de Encomendas</span><span id="package-count" class="count">0</span><div class="control-tools"><label class="search"><i class="bi bi-search"></i><input id="search-input" type="search" placeholder="Buscar encomenda..."></label><button id="refresh-btn" class="icon-btn" title="Atualizar"><i class="bi bi-arrow-clockwise"></i></button></div></div>
+        <div class="table-scroll"><table><thead><tr><th>ID</th><th>Destinatário</th><th>Apt.</th><th>Chegada</th><th>Transportadora</th><th>Status</th><th>Retirada</th><th>Ação</th></tr></thead><tbody id="packages-body"></tbody></table></div>
+      </section>
+
+      <section class="panel" id="residents">
+        <div class="control-head"><span class="step muted"><i class="bi bi-people"></i></span><span class="panel-title">Moradores</span><span id="resident-count" class="count">0</span><div class="resident-tools"><label class="search resident-search"><i class="bi bi-search"></i><input id="resident-search" type="search" placeholder="Buscar nome, apartamento ou e-mail..."></label><button id="add-resident-btn" class="btn btn-primary small-btn"><i class="bi bi-person-plus"></i>&nbsp; Novo Morador</button></div></div>
+        <div class="table-scroll"><table><thead><tr><th>Morador</th><th>Apartamento</th><th>E-mail</th><th>Encomendas</th><th>Ações</th></tr></thead><tbody id="residents-body"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="resident-dialog">
+    <form id="resident-form">
+      <div class="dialog-head"><h2 id="resident-dialog-title">Novo morador</h2><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar">×</button></div>
+      <div class="dialog-body">
+        <input id="resident-id" type="hidden">
+        <div class="form-group"><label for="resident-name">Nome completo</label><input id="resident-name" class="form-control" autocomplete="name" required maxlength="120"></div>
+        <div class="form-group"><label for="resident-apartment">Apartamento</label><input id="resident-apartment" class="form-control" required maxlength="30" placeholder="Ex.: 101-A"></div>
+        <div class="form-group"><label for="resident-email">E-mail</label><input id="resident-email" class="form-control" type="email" autocomplete="email" required maxlength="160"></div>
+        <div class="dialog-actions"><button class="btn" type="button" data-close-dialog>Cancelar</button><button id="save-resident-btn" class="btn btn-primary" type="submit">Salvar morador</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const qs = selector => document.querySelector(selector);
+    let scanAtual = null, cameraStream = null, buscaTimer = null, moradoresTimer = null, moradoresCache = [];
+
+    qs('#today').textContent = new Intl.DateTimeFormat('pt-BR', { weekday:'long', day:'2-digit', month:'short', year:'numeric' }).format(new Date());
+    function escapar(valor) { const div=document.createElement('div'); div.textContent=valor??''; return div.innerHTML; }
+    function iniciais(nome) { return (nome||'').split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase(); }
+    function formatarData(valor, completa=false) { if(!valor) return '—'; return new Intl.DateTimeFormat('pt-BR', completa?{dateStyle:'short',timeStyle:'short'}:{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(valor)); }
+    function alerta(mensagem,tipo='success') { const el=qs('#alerta'); el.className=`alert alert-${tipo} show`; el.textContent=mensagem; setTimeout(()=>el.classList.remove('show'),7000); }
+    async function json(response) { const data=await response.json().catch(()=>({erro:'Resposta inválida do servidor.'})); if(!response.ok) throw new Error(data.erro||'Falha na operação.'); return data; }
+
+    async function carregarResumo() { try { const r=await json(await fetch('/api/resumo')); qs('#metric-total').textContent=r.total; qs('#metric-waiting').textContent=r.aguardando; qs('#metric-notifications').textContent=r.notificacoes_pendentes; qs('#metric-delivered').textContent=r.entregues_semana; } catch(e) { console.error(e); } }
+    function preencherSelecaoMoradores(items) {
+      moradoresCache=items;
+      const select=qs('#resident-select'), valorAtual=select.value;
+      select.innerHTML='<option value="">Selecione o morador...</option>'+items.map(m=>`<option value="${m.id}">${escapar(m.nome)} — Apt. ${escapar(m.apartamento)}</option>`).join('');
+      if(items.some(m=>String(m.id)===valorAtual))select.value=valorAtual;
+    }
+    async function carregarMoradores(atualizarSelecao=true) {
+      const termo=qs('#resident-search').value.trim(), corpo=qs('#residents-body');
+      try {
+        const items=await json(await fetch(`/api/moradores?q=${encodeURIComponent(termo)}`));
+        qs('#resident-count').textContent=items.length;
+        corpo.innerHTML=items.length?items.map(m=>`<tr><td><span class="resident"><span class="resident-avatar">${escapar(iniciais(m.nome))}</span>${escapar(m.nome)}</span></td><td class="mono">${escapar(m.apartamento)}</td><td>${escapar(m.email)}</td><td><span class="count">${m.total_encomendas}</span></td><td><button class="btn small-btn" data-edit-resident="${m.id}"><i class="bi bi-pencil"></i> Editar</button> <button class="btn small-btn danger-btn" data-delete-resident="${m.id}" data-resident-name="${escapar(m.nome)}" ${m.total_encomendas?'disabled title="Possui encomendas vinculadas"':''}><i class="bi bi-trash"></i> Excluir</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nenhum morador encontrado.</td></tr>';
+        if(atualizarSelecao&& !termo)preencherSelecaoMoradores(items);
+      } catch(e) { corpo.innerHTML=`<tr><td colspan="5" class="empty">${escapar(e.message)}</td></tr>`; }
+    }
+    async function carregarEncomendas() {
+      const termo=qs('#search-input').value.trim(), corpo=qs('#packages-body');
+      try {
+        const items=await json(await fetch(`/api/encomendas?q=${encodeURIComponent(termo)}`)); qs('#package-count').textContent=items.length;
+        corpo.innerHTML=items.length?items.map(item=>{const entregue=item.status==='Entregue';return `<tr><td><span class="code">${escapar(item.codigo_identificacao)}</span></td><td><span class="resident"><span class="resident-avatar">${escapar(iniciais(item.morador))}</span>${escapar(item.morador)}</span></td><td class="mono">${escapar(item.apartamento)}</td><td class="mono">${escapar(formatarData(item.data_hora_recebimento))}</td><td>${escapar(item.transportadora)}</td><td><span class="status ${entregue?'delivered':'waiting'}">${escapar(entregue?'Entregue':'Aguardando')}</span></td><td class="mono">${escapar(formatarData(item.data_hora_retirada,true))}</td><td>${entregue?'<span class="panel-subtitle">Concluída</span>':`<button class="btn low-btn" data-pickup="${item.id}" data-code="${escapar(item.codigo_identificacao)}">Dar baixa</button>`}</td></tr>`}).join(''):'<tr><td colspan="8" class="empty">Nenhuma encomenda encontrada.</td></tr>';
+      } catch(e) { corpo.innerHTML=`<tr><td colspan="8" class="empty">${escapar(e.message)}</td></tr>`; }
+    }
+    async function atualizarTudo(){await Promise.all([carregarResumo(),carregarEncomendas(),carregarMoradores()]);}
+
+    const drop=qs('#drop-zone');
+    ['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add('dragging');}));
+    ['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove('dragging');}));
+    drop.addEventListener('drop',e=>e.dataTransfer.files[0]&&processarArquivo(e.dataTransfer.files[0]));
+    drop.addEventListener('click',()=>qs('#gallery-input').click());
+    qs('#choose-image-btn').addEventListener('click',()=>qs('#gallery-input').click());
+    qs('#gallery-input').addEventListener('change',e=>e.target.files[0]&&processarArquivo(e.target.files[0]));
+    qs('#camera-input').addEventListener('change',e=>e.target.files[0]&&processarArquivo(e.target.files[0]));
+
+    function fecharCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;qs('#camera-video').srcObject=null;qs('#camera-panel').classList.add('hidden');}
+    qs('#open-camera-btn').addEventListener('click',async()=>{
+      if(!navigator.mediaDevices?.getUserMedia){qs('#camera-input').click();return;}
+      try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920}},audio:false});qs('#camera-video').srcObject=cameraStream;qs('#camera-panel').classList.remove('hidden');qs('#camera-panel').scrollIntoView({behavior:'smooth'});}catch(e){alerta('Não foi possível abrir a câmera ao vivo. Abrindo a captura nativa.','warning');qs('#camera-input').click();}
+    });
+    qs('#close-camera-btn').addEventListener('click',fecharCamera);
+    qs('#capture-btn').addEventListener('click',()=>{const v=qs('#camera-video'),c=qs('#camera-canvas');if(!v.videoWidth)return alerta('A câmera ainda está iniciando.','warning');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);c.toBlob(blob=>{fecharCamera();if(blob)processarArquivo(new File([blob],'captura.jpg',{type:'image/jpeg'}));},'image/jpeg',.92);});
+
+    async function processarArquivo(arquivo){
+      if(!arquivo.type.startsWith('image/'))return alerta('Selecione um arquivo de imagem.','warning');
+      qs('#processing').classList.add('show');qs('#confirm-btn').disabled=true;
+      try{const fd=new FormData();fd.append('imagem',arquivo);const data=await json(await fetch('/api/scan',{method:'POST',body:fd}));scanAtual=data;qs('#original-preview').src=URL.createObjectURL(arquivo);qs('#processed-preview').src=`${data.imagem_processada_path}?t=${Date.now()}`;qs('#ocr-text').textContent=data.nome_detectado||'Nenhum texto reconhecido.';qs('#generated-code').value=data.codigo_gerado;qs('#carrier').value=data.transportadora_detectada||'Não identificada';const m=data.morador_encontrado;qs('#resident-select').value=m?String(m.id):'';qs('#resident-match-hint').textContent=m?`Identificado automaticamente: ${m.nome}, apartamento ${m.apartamento}.`:'O OCR não encontrou um morador. Selecione manualmente para continuar.';qs('#confirm-btn').disabled=!m;qs('#validation-panel').classList.remove('hidden');qs('#validation-panel').scrollIntoView({behavior:'smooth'});alerta(m?'Etiqueta processada. Confira os dados.':'Selecione manualmente o morador para continuar.',m?'info':'warning');}catch(e){alerta(e.message,'danger');}finally{qs('#processing').classList.remove('show');qs('#gallery-input').value='';qs('#camera-input').value='';}
+    }
+    qs('#resident-select').addEventListener('change',()=>{const id=Number(qs('#resident-select').value),morador=moradoresCache.find(m=>m.id===id);if(scanAtual)scanAtual.morador_encontrado=morador||null;qs('#confirm-btn').disabled=!morador;qs('#resident-match-hint').textContent=morador?`Selecionado: ${morador.nome}, apartamento ${morador.apartamento}.`:'Selecione um morador para continuar.';});
+    qs('#confirm-btn').addEventListener('click',async()=>{const idMorador=Number(qs('#resident-select').value);if(!scanAtual||!idMorador)return;const btn=qs('#confirm-btn');btn.disabled=true;btn.textContent='Registrando...';try{const data=await json(await fetch('/api/confirmar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id_morador:idMorador,codigo_identificacao:scanAtual.codigo_gerado,transportadora:qs('#carrier').value})}));alerta(`${data.mensagem} ${data.detalhe_email}`,data.email_enviado?'success':'warning');scanAtual=null;qs('#validation-panel').classList.add('hidden');await atualizarTudo();}catch(e){alerta(e.message,'danger');btn.disabled=false;}finally{btn.textContent='Confirmar Registro e Notificar';}});
+
+    qs('#packages-body').addEventListener('click',async e=>{const btn=e.target.closest('[data-pickup]');if(!btn||!confirm(`Confirmar a retirada da encomenda ${btn.dataset.code}?`))return;btn.disabled=true;try{const data=await json(await fetch(`/api/encomendas/${btn.dataset.pickup}/retirada`,{method:'PATCH'}));alerta(data.mensagem);await atualizarTudo();}catch(err){alerta(err.message,'danger');btn.disabled=false;}});
+    qs('#search-input').addEventListener('input',()=>{clearTimeout(buscaTimer);buscaTimer=setTimeout(carregarEncomendas,250);});
+    qs('#refresh-btn').addEventListener('click',atualizarTudo);
+    qs('#resident-search').addEventListener('input',()=>{clearTimeout(moradoresTimer);moradoresTimer=setTimeout(()=>carregarMoradores(false),250);});
+
+    const residentDialog=qs('#resident-dialog'),residentForm=qs('#resident-form');
+    function abrirFormularioMorador(morador=null){residentForm.reset();qs('#resident-id').value=morador?.id||'';qs('#resident-name').value=morador?.nome||'';qs('#resident-apartment').value=morador?.apartamento||'';qs('#resident-email').value=morador?.email||'';qs('#resident-dialog-title').textContent=morador?'Editar morador':'Novo morador';residentDialog.showModal();qs('#resident-name').focus();}
+    qs('#add-resident-btn').addEventListener('click',()=>abrirFormularioMorador());
+    document.querySelectorAll('[data-close-dialog]').forEach(btn=>btn.addEventListener('click',()=>residentDialog.close()));
+    residentForm.addEventListener('submit',async e=>{e.preventDefault();const id=qs('#resident-id').value,btn=qs('#save-resident-btn'),payload={nome:qs('#resident-name').value,apartamento:qs('#resident-apartment').value,email:qs('#resident-email').value};btn.disabled=true;try{await json(await fetch(id?`/api/moradores/${id}`:'/api/moradores',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}));residentDialog.close();qs('#resident-search').value='';await carregarMoradores();alerta(id?'Morador atualizado com sucesso.':'Morador cadastrado com sucesso.');}catch(err){alerta(err.message,'danger');}finally{btn.disabled=false;}});
+    qs('#residents-body').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-resident]'),del=e.target.closest('[data-delete-resident]');if(edit){const morador=moradoresCache.find(m=>m.id===Number(edit.dataset.editResident));if(morador)abrirFormularioMorador(morador);}if(del&&!del.disabled&&confirm(`Excluir o cadastro de ${del.dataset.residentName}?`)){del.disabled=true;try{const data=await json(await fetch(`/api/moradores/${del.dataset.deleteResident}`,{method:'DELETE'}));qs('#resident-search').value='';await carregarMoradores();alerta(data.mensagem);}catch(err){alerta(err.message,'danger');del.disabled=false;}}});
+    document.querySelectorAll('.nav-button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav-button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(btn.dataset.target)qs(`#${btn.dataset.target}`).scrollIntoView({behavior:'smooth'});if(btn.dataset.filter){qs('#search-input').value=btn.dataset.filter;carregarEncomendas();qs('#packages').scrollIntoView({behavior:'smooth'});}if(btn.hasAttribute('data-settings'))alerta('As configurações de SMTP são feitas pelas variáveis de ambiente descritas no README.','info');}));
+    window.addEventListener('beforeunload',fecharCamera);atualizarTudo();
+  </script>
+</body>
+</html>
