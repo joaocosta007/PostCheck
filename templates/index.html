@@ -62,8 +62,9 @@
     .btn-primary:hover { background:var(--blue-dark); }
     .btn-success { color:#fff; background:#09966a; border-color:#09966a; }
     .btn:disabled { cursor:not-allowed; opacity:.55; }
-    .processing { display:none; margin-top:14px; color:#5e7191; text-align:center; }
-    .processing.show { display:block; }
+    .processing { display:none; margin-top:14px; color:#5e7191; align-items:center; justify-content:center; gap:10px; text-align:center; }
+    .processing.show { display:flex; }
+    .cancel-process { min-height:32px; padding:5px 10px; color:#b42318; border-color:#f3b8b2; font-size:11px; }
     .spinner { width:14px; height:14px; display:inline-block; margin-right:6px; border:2px solid #bed0ef; border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .hidden { display:none !important; }
@@ -76,7 +77,7 @@
     .field label { display:block; margin-bottom:6px; color:#60708b; font-size:11px; font-weight:800; text-transform:uppercase; }
     .field-box,.readonly { width:100%; min-height:43px; padding:11px 12px; border:1px solid #d7e0eb; border-radius:8px; background:#f9fafc; color:#263650; }
     .ocr { min-height:72px; white-space:pre-wrap; }
-    .validation-actions { display:flex; justify-content:flex-end; margin-top:18px; }
+    .validation-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
     .control-head { padding:16px 24px; display:flex; align-items:center; gap:12px; }
     .count { min-width:22px; padding:3px 7px; border-radius:12px; background:#f0f3f8; color:#71819b; font-size:10px; font-weight:800; text-align:center; }
     .control-tools { margin-left:auto; display:flex; gap:8px; }
@@ -166,7 +167,7 @@
             <input class="hidden" type="file" id="camera-input" accept="image/*" capture="environment">
             <input class="hidden" type="file" id="gallery-input" accept="image/*">
           </div>
-          <div id="processing" class="processing"><span class="spinner"></span>Processando etiqueta com OCR...</div>
+          <div id="processing" class="processing"><span class="spinner"></span><span>Processando etiqueta com OCR...</span><button id="cancel-processing-btn" class="btn cancel-process" type="button"><i class="bi bi-x-circle"></i> Cancelar</button></div>
         </div>
       </section>
 
@@ -182,7 +183,7 @@
           <div class="field"><label>Texto extraído</label><div id="ocr-text" class="field-box ocr"></div></div>
           <div class="validation-grid"><div class="field"><label>Morador identificado</label><select id="resident-select" class="readonly"><option value="">Selecione o morador...</option></select><div id="resident-match-hint" class="panel-subtitle" style="margin-top:6px"></div></div><div class="field"><label>Transportadora</label><input id="carrier" class="readonly"></div></div>
           <div class="field"><label>Código gerado</label><input id="generated-code" class="readonly" readonly></div>
-          <div class="validation-actions"><button id="confirm-btn" class="btn btn-success" disabled>Confirmar Registro e Notificar</button></div>
+          <div class="validation-actions"><button id="discard-scan-btn" class="btn" type="button">Descartar Leitura</button><button id="confirm-btn" class="btn btn-success" disabled>Confirmar Registro e Notificar</button></div>
         </div>
       </section>
 
@@ -213,7 +214,7 @@
 
   <script>
     const qs = selector => document.querySelector(selector);
-    let scanAtual = null, cameraStream = null, buscaTimer = null, moradoresTimer = null, moradoresCache = [];
+    let scanAtual = null, cameraStream = null, buscaTimer = null, moradoresTimer = null, moradoresCache = [], scanController = null, originalPreviewUrl = null;
 
     qs('#today').textContent = new Intl.DateTimeFormat('pt-BR', { weekday:'long', day:'2-digit', month:'short', year:'numeric' }).format(new Date());
     function escapar(valor) { const div=document.createElement('div'); div.textContent=valor??''; return div.innerHTML; }
@@ -257,17 +258,44 @@
     qs('#camera-input').addEventListener('change',e=>e.target.files[0]&&processarArquivo(e.target.files[0]));
 
     function fecharCamera(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;qs('#camera-video').srcObject=null;qs('#camera-panel').classList.add('hidden');}
+    function limparLeitura(){
+      scanAtual=null;
+      qs('#validation-panel').classList.add('hidden');
+      qs('#confirm-btn').disabled=true;
+      qs('#resident-select').value='';
+      qs('#resident-match-hint').textContent='';
+      qs('#ocr-text').textContent='';
+      qs('#generated-code').value='';
+      qs('#carrier').value='';
+      qs('#original-preview').removeAttribute('src');
+      qs('#processed-preview').removeAttribute('src');
+      if(originalPreviewUrl){URL.revokeObjectURL(originalPreviewUrl);originalPreviewUrl=null;}
+    }
+    function cancelarProcessamento(){
+      if(scanController){scanController.abort();scanController=null;}
+      fecharCamera();
+      qs('#processing').classList.remove('show');
+      qs('#gallery-input').value='';
+      qs('#camera-input').value='';
+      limparLeitura();
+      alerta('Leitura cancelada. Você pode iniciar uma nova captura.','info');
+    }
     qs('#open-camera-btn').addEventListener('click',async()=>{
       if(!navigator.mediaDevices?.getUserMedia){qs('#camera-input').click();return;}
       try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920}},audio:false});qs('#camera-video').srcObject=cameraStream;qs('#camera-panel').classList.remove('hidden');qs('#camera-panel').scrollIntoView({behavior:'smooth'});}catch(e){alerta('Não foi possível abrir a câmera ao vivo. Abrindo a captura nativa.','warning');qs('#camera-input').click();}
     });
     qs('#close-camera-btn').addEventListener('click',fecharCamera);
+    qs('#cancel-processing-btn').addEventListener('click',cancelarProcessamento);
+    qs('#discard-scan-btn').addEventListener('click',()=>{limparLeitura();qs('#capture').scrollIntoView({behavior:'smooth'});alerta('Leitura descartada.','info');});
     qs('#capture-btn').addEventListener('click',()=>{const v=qs('#camera-video'),c=qs('#camera-canvas');if(!v.videoWidth)return alerta('A câmera ainda está iniciando.','warning');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);c.toBlob(blob=>{fecharCamera();if(blob)processarArquivo(new File([blob],'captura.jpg',{type:'image/jpeg'}));},'image/jpeg',.92);});
 
     async function processarArquivo(arquivo){
       if(!arquivo.type.startsWith('image/'))return alerta('Selecione um arquivo de imagem.','warning');
+      if(scanController)scanController.abort();
+      limparLeitura();
+      const controller=new AbortController();scanController=controller;
       qs('#processing').classList.add('show');qs('#confirm-btn').disabled=true;
-      try{const fd=new FormData();fd.append('imagem',arquivo);const data=await json(await fetch('/api/scan',{method:'POST',body:fd}));scanAtual=data;qs('#original-preview').src=URL.createObjectURL(arquivo);qs('#processed-preview').src=`${data.imagem_processada_path}?t=${Date.now()}`;qs('#ocr-text').textContent=data.nome_detectado||'Nenhum texto reconhecido.';qs('#generated-code').value=data.codigo_gerado;qs('#carrier').value=data.transportadora_detectada||'Não identificada';const m=data.morador_encontrado;qs('#resident-select').value=m?String(m.id):'';qs('#resident-match-hint').textContent=m?`Identificado automaticamente: ${m.nome}, apartamento ${m.apartamento}.`:'O OCR não encontrou um morador. Selecione manualmente para continuar.';qs('#confirm-btn').disabled=!m;qs('#validation-panel').classList.remove('hidden');qs('#validation-panel').scrollIntoView({behavior:'smooth'});alerta(m?'Etiqueta processada. Confira os dados.':'Selecione manualmente o morador para continuar.',m?'info':'warning');}catch(e){alerta(e.message,'danger');}finally{qs('#processing').classList.remove('show');qs('#gallery-input').value='';qs('#camera-input').value='';}
+      try{const fd=new FormData();fd.append('imagem',arquivo);const data=await json(await fetch('/api/scan',{method:'POST',body:fd,signal:controller.signal}));if(controller.signal.aborted)return;scanAtual=data;originalPreviewUrl=URL.createObjectURL(arquivo);qs('#original-preview').src=originalPreviewUrl;qs('#processed-preview').src=`${data.imagem_processada_path}?t=${Date.now()}`;qs('#ocr-text').textContent=data.nome_detectado||'Nenhum texto reconhecido.';qs('#generated-code').value=data.codigo_gerado;qs('#carrier').value=data.transportadora_detectada||'Não identificada';const m=data.morador_encontrado;qs('#resident-select').value=m?String(m.id):'';qs('#resident-match-hint').textContent=m?`Identificado automaticamente: ${m.nome}, apartamento ${m.apartamento}.`:'O OCR não encontrou um morador. Selecione manualmente para continuar.';qs('#confirm-btn').disabled=!m;qs('#validation-panel').classList.remove('hidden');qs('#validation-panel').scrollIntoView({behavior:'smooth'});alerta(m?'Etiqueta processada. Confira os dados.':'Selecione manualmente o morador para continuar.',m?'info':'warning');}catch(e){if(e.name!=='AbortError')alerta(e.message,'danger');}finally{if(scanController===controller){scanController=null;qs('#processing').classList.remove('show');qs('#gallery-input').value='';qs('#camera-input').value='';}}
     }
     qs('#resident-select').addEventListener('change',()=>{const id=Number(qs('#resident-select').value),morador=moradoresCache.find(m=>m.id===id);if(scanAtual)scanAtual.morador_encontrado=morador||null;qs('#confirm-btn').disabled=!morador;qs('#resident-match-hint').textContent=morador?`Selecionado: ${morador.nome}, apartamento ${morador.apartamento}.`:'Selecione um morador para continuar.';});
     qs('#confirm-btn').addEventListener('click',async()=>{const idMorador=Number(qs('#resident-select').value);if(!scanAtual||!idMorador)return;const btn=qs('#confirm-btn');btn.disabled=true;btn.textContent='Registrando...';try{const data=await json(await fetch('/api/confirmar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id_morador:idMorador,codigo_identificacao:scanAtual.codigo_gerado,transportadora:qs('#carrier').value})}));alerta(`${data.mensagem} ${data.detalhe_email}`,data.email_enviado?'success':'warning');scanAtual=null;qs('#validation-panel').classList.add('hidden');await atualizarTudo();}catch(e){alerta(e.message,'danger');btn.disabled=false;}finally{btn.textContent='Confirmar Registro e Notificar';}});
